@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: ISC
 CC ?= cc
 CFLAGS ?= -O2 -g
 CFLAGS += -Wall -Wextra -std=gnu11

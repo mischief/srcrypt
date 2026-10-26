@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: BSD-3-Clause */
 /* $OpenBSD: blf.h,v 1.8 2021/11/29 01:04:45 djm Exp $ */
 /*
  * Blowfish - a fast block cipher designed by Bruce Schneier

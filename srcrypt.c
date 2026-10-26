@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: ISC */
 /*
  * Copyright (c) 2026 Nick Owens <mischief@offblast.org>
  *

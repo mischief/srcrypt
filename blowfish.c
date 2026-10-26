@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: BSD-3-Clause */
 /* $OpenBSD: blowfish.c,v 1.21 2022/08/28 11:11:25 jsg Exp $ */
 /*
  * Blowfish block cipher for OpenBSD
