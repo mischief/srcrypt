@@ -914,6 +914,38 @@ dmremove(const char *name)
 	return ok ? 0 : -1;
 }
 
+/*
+ * Return the Linux ufstype for the FFS file system at block off, or NULL.
+ * The Linux UFS driver cannot mount a fragment size over 4096.
+ */
+static const char *
+ffstype(int fd, uint64_t off, uint64_t len, int32_t *fsize)
+{
+	static const struct {
+		uint32_t	 sblock;
+		int32_t		 magic;
+		const char	*type;
+	} sb[] = {
+		{ 65536, 0x19540119, "ufs2" },
+		{ 8192, 0x011954, "44bsd" },
+	};
+	uint8_t	buf[1376];
+	int32_t	magic;
+	size_t	i;
+
+	for (i = 0; i < 2; i++) {
+		if (sb[i].sblock + sizeof(buf) > len * DEV_BSIZE)
+			continue;
+		preadall(fd, buf, sizeof(buf), off * DEV_BSIZE + sb[i].sblock);
+		memcpy(&magic, buf + 1372, 4);
+		if (magic != sb[i].magic)
+			continue;
+		memcpy(fsize, buf + 52, 4);
+		return sb[i].type;
+	}
+	return NULL;
+}
+
 /* Create one read-only dm-linear device per partition of the inner label. */
 static void
 mkparts(const char *name)
@@ -932,10 +964,11 @@ mkparts(const char *name)
 		close(fd);
 		return;
 	}
-	close(fd);
 
 	for (i = 0; i < dl.d_npartitions; i++) {
 		struct partition *pp = &dl.d_partitions[i];
+		const char *type = NULL;
+		int32_t fsize = 0;
 
 		if (i == RAW_PART || pp->p_fstype == FS_UNUSED)
 			continue;
@@ -954,12 +987,23 @@ mkparts(const char *name)
 			errx(1, "dm_task_create failed");
 		if (!dm_task_add_target(dmt, 0, len, "linear", params))
 			errx(1, "dm_task_add_target failed");
-		if (dmcreate(pname, dmt) == -1)
+		if (dmcreate(pname, dmt) == -1) {
 			warnx("%s: create failed", pname);
-		else
-			printf("%s/%s\n", dm_dir(), pname);
+			dm_task_destroy(dmt);
+			continue;
+		}
 		dm_task_destroy(dmt);
+		if (pp->p_fstype == FS_BSDFFS)
+			type = ffstype(fd, off, len, &fsize);
+		if (type == NULL)
+			printf("%s/%s\n", dm_dir(), pname);
+		else if (fsize > 4096)
+			printf("%s/%s ufstype=%s (fsize %d: Linux UFS "
+			    "cannot mount it)\n", dm_dir(), pname, type, fsize);
+		else
+			printf("%s/%s ufstype=%s\n", dm_dir(), pname, type);
 	}
+	close(fd);
 }
 
 static void

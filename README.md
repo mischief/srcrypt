@@ -35,7 +35,8 @@ Example:
     sudo srcrypt close obsd
 
 `open` creates `/dev/mapper/NAME` for the whole volume and `NAME-a`,
-`NAME-d`, ... for its partitions. `close` removes all of them.
+`NAME-d`, ... for its partitions, and prints the `ufstype` for each
+FFS partition. `close` removes all of them.
 
 The device can be the RAID partition itself, the OpenBSD MBR or GPT
 partition, or the whole disk. `info` and `table` also take a disk image.
@@ -55,6 +56,11 @@ disk key in it; do not leave it in logs.
 
 Use `ufstype=ufs2` for FFS2 (the default on new installs) and
 `ufstype=44bsd` for FFS1.
+
+The Linux UFS driver cannot mount a file system with a fragment size
+over 4096 bytes. OpenBSD `disklabel` gives partitions over 512 GiB a
+fragment size of 8192, so Linux cannot mount them; `open` says so.
+Partitions up to 512 GiB use 2048 or 4096 and mount.
 
 On a disk with 4096-byte sectors the dm devices also have 4096-byte
 sectors, and the Linux UFS driver cannot mount them ("failed to set
@@ -87,4 +93,7 @@ Tested against volumes made by OpenBSD 8.0 `bioctl`:
 - bcrypt_pbkdf passphrase, GPT outer disk, MBR inner disk, FFS2 mount
 - keydisk
 - 520 GiB volume with two disk keys
+- 5 TiB volume with ten disk keys: raw data in each key range,
+  partitions above 2^32 sectors, a 200 GiB FFS2 partition that spans
+  two keys
 - 4096-byte sector disk with GPT, mounted through a 512-byte loop
