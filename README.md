@@ -102,3 +102,8 @@ SHA-256 hashes of data read on Linux with the same data read on OpenBSD.
   correct offset. Not mounted, because the partition is over 512 GiB.
 - Disk with 4096-byte sectors, GPT: raw data matches, and FFS2 files
   match through a 512-byte loop device.
+
+## License
+
+ISC; see `LICENSE`. `bcrypt_pbkdf.c` (ISC) and `blowfish.c` and `blf.h`
+(3-clause BSD) keep their own OpenBSD license headers.
