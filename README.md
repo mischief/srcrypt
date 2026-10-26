@@ -88,12 +88,17 @@ blocksize"). Put a 512-byte loop device on top:
 
 ## Tests
 
-Tested against volumes made by OpenBSD 8.0 `bioctl`:
+Tested against volumes made by OpenBSD 8.0 `bioctl`. Each test compares
+SHA-256 hashes of data read on Linux with the same data read on OpenBSD.
 
-- bcrypt_pbkdf passphrase, GPT outer disk, MBR inner disk, FFS2 mount
-- keydisk
-- 520 GiB volume with two disk keys
-- 5 TiB volume with ten disk keys: raw data in each key range,
-  partitions above 2^32 sectors, a 200 GiB FFS2 partition that spans
-  two keys
-- 4096-byte sector disk with GPT, mounted through a 512-byte loop
+- Passphrase (bcrypt_pbkdf), GPT outer disk, MBR inner disk: FFS2
+  files match.
+- Keydisk: raw data matches.
+- 520 GiB volume (2 disk keys): raw data in both key ranges matches.
+- 5 TiB volume (10 disk keys): raw data in all 10 key ranges matches.
+  A 200 GiB FFS2 partition that crosses a key boundary mounts and its
+  files match.
+- Partition that starts above sector 2^32: the dm-linear device is at the
+  correct offset. Not mounted, because the partition is over 512 GiB.
+- Disk with 4096-byte sectors, GPT: raw data matches, and FFS2 files
+  match through a 512-byte loop device.
