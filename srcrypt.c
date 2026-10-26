@@ -635,10 +635,11 @@ numkeys(const struct sr_metadata *sm)
 
 /* Check the parts of the crypto metadata that unlock depends on. */
 static void
-checkcrypto(const struct chunk *c, uint64_t devblocks)
+checkcrypto(const struct chunk *c, int fd)
 {
 	const struct sr_metadata	*sm = c->sm;
 	const struct sr_meta_crypto	*cm = &c->crypto;
+	uint64_t			 end, size;
 
 	if (!c->have_crypto)
 		errx(1, "volume has no crypto metadata");
@@ -653,8 +654,16 @@ checkcrypto(const struct chunk *c, uint64_t devblocks)
 		errx(1, "unknown check algorithm %u", cm->scm_check_alg);
 	if (sm->ssd_size <= 0 || numkeys(sm) > SR_CRYPTO_MAXKEYS)
 		errx(1, "bad volume size %" PRId64, sm->ssd_size);
-	if (c->off + sm->ssd_data_blkno + (uint64_t)sm->ssd_size > devblocks)
-		errx(1, "volume extends past the end of the device");
+	end = c->off + sm->ssd_data_blkno + (uint64_t)sm->ssd_size;
+	size = devsize(fd);
+	if (end > size) {
+		/* A disklabel partition can extend past its MBR or GPT partition. */
+		warnx("volume ends at block %" PRIu64 ", past the end of "
+		    "the device (%" PRIu64 " blocks)", end, size);
+		if (devstart(fd) > 0)
+			errx(1, "device is a partition; try the whole disk");
+		exit(1);
+	}
 }
 
 static void
@@ -1142,7 +1151,7 @@ main(int argc, char *argv[])
 	if (findchunk(fd, SR_CRYPTO_LEVEL, c) == -1)
 		errx(1, "%s: no softraid CRYPTO chunk found", dev);
 
-	checkcrypto(c, devsize(fd));
+	checkcrypto(c, fd);
 	if (numkeys(c->sm) > 1 && !fflag)
 		errx(1, "volume is larger than 512 GiB; data near key "
 		    "boundaries can be wrong; use -f to continue");
